@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         String     @default("OWNER")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  businesses   Business[]
+}
+
+model Business {
+  id                 String           @id @default(cuid())
+  name               String
+  slug               String           @unique
+  category           String           @default("Restaurant")
+  ownerId            String
+  owner              User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  phone              String
+  whatsappNumber     String
+  email              String?
+  address            String?
+  city               String?
+  state              String?
+  pinCode            String?
+  openingHoursText   String?          @default("10:00 AM - 11:00 PM")
+  logo               String?
+  coverImage         String?
+  primaryColor       String           @default("#10b981")
+  secondaryColor     String           @default("#065f46")
+  currency           String           @default("INR")
+  currencySymbol     String           @default("₹")
+  isTaxEnabled       Boolean          @default(false)
+  taxRate            Float            @default(5.0)
+  deliveryFee        Float            @default(0.0)
+  minOrderAmount     Float            @default(0.0)
+  isStoreOpenManual  Boolean          @default(true)
+  dietaryType        String           @default("VEG_NON_VEG") // PURE_VEG, VEG_NON_VEG, NON_VEG
+  businessTypeConfig String?          // JSON: custom order fields configuration
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  categories         Category[]
+  products           Product[]
+  orders             Order[]
+  businessHours      BusinessHours[]
+  qrCodes            QRCode[]
+  analyticsEvents    AnalyticsEvent[]
+  subscription       Subscription?
+
+  @@index([slug])
+  @@index([ownerId])
+}
+
+model BusinessHours {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  isOpen      Boolean  @default(true)
+  openTime    String   @default("10:00")
+  closeTime   String   @default("23:00")
+  openTime2   String?  // Split shift start
+  closeTime2  String?  // Split shift end
+
+  @@unique([businessId, dayOfWeek])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  businessId  String
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@index([businessId])
+}
+
+model Product {
+  id             String                @id @default(cuid())
+  businessId     String
+  business       Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  categoryId     String
+  category       Category              @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  price          Float
+  compareAtPrice Float?
+  image          String?
+  isAvailable    Boolean               @default(true)
+  isFeatured     Boolean               @default(false)
+  foodType       String                @default("VEG") // VEG, NON_VEG, EGG
+  sortOrder      Int                   @default(0)
+  metadata       String?               // JSON: foodType (veg/nonveg), tags
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  variantGroups  ProductVariantGroup[]
+  addons         ProductAddon[]
+
+  @@index([businessId])
+  @@index([categoryId])
+}
+
+model ProductVariantGroup {
+  id        String                 @id @default(cuid())
+  productId String
+  product   Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String                 // e.g. "Size", "Crust"
+  required  Boolean                @default(true)
+  minSelect Int                    @default(1)
+  maxSelect Int                    @default(1)
+  options   ProductVariantOption[]
+
+  @@index([productId])
+}
+
+model ProductVariantOption {
+  id             String              @id @default(cuid())
+  variantGroupId String
+  variantGroup   ProductVariantGroup @relation(fields: [variantGroupId], references: [id], onDelete: Cascade)
+  name           String              // e.g. "Regular", "Medium", "Large"
+  priceModifier  Float               @default(0.0) // Added to base product price
+  isAvailable    Boolean             @default(true)
+
+  @@index([variantGroupId])
+}
+
+model ProductAddon {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name        String   // e.g. "Extra Cheese", "Dip"
+  price       Float    @default(0.0)
+  isAvailable Boolean  @default(true)
+
+  @@index([productId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  businessId      String
+  business        Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orderNumber     String      // Human-friendly: e.g. "#ABC-1024"
+  customerName    String
+  customerPhone   String?
+  customerNotes   String?
+  tableNumber     String?
+  deliveryAddress String?
+  customFields    String?     // JSON of specific business fields
+  subtotal        Float
+  taxAmount       Float       @default(0.0)
+  deliveryFee     Float       @default(0.0)
+  totalAmount     Float
+  status          String      @default("NEW") // NEW, ACCEPTED, PREPARING, READY, COMPLETED, CANCELLED
+  whatsappMessage String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           OrderItem[]
+
+  @@index([businessId])
+  @@index([orderNumber])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model OrderItem {
+  id               String  @id @default(cuid())
+  orderId          String
+  order            Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String
+  productName      String
+  unitPrice        Float
+  quantity         Int
+  totalPrice       Float
+  selectedVariants String? // JSON array: [{ groupName, optionName, priceModifier }]
+  selectedAddons   String? // JSON array: [{ name, price }]
+
+  @@index([orderId])
+}
+
+model QRCode {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  qrCodeKey  String   @unique
+  scanCount  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([businessId])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  eventType  String   // "QR_SCAN", "PAGE_VIEW", "PRODUCT_VIEW", "ADD_TO_CART", "ORDER_INITIATED"
+  metadata   String?  // JSON string
+  createdAt  DateTime @default(now())
+
+  @@index([businessId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model Subscription {
+  id               String   @id @default(cuid())
+  businessId       String   @unique
+  business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan             String   @default("PRO_MONTHLY") // SETUP_TRIAL, PRO_MONTHLY, PRO_YEARLY
+  status           String   @default("ACTIVE") // ACTIVE, TRIAL, PAST_DUE, CANCELLED
+  monthlyPrice     Float    @default(299.0)
+  setupFee         Float    @default(1999.0)
+  currentPeriodEnd DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
