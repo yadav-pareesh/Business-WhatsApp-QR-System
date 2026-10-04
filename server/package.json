@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
+    "postinstall": "prisma generate",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -25,6 +26,7 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "prisma": "^6.4.1",
     "qrcode": "^1.5.4",
     "stripe": "^23.0.0",
     "zod": "^3.24.2"
@@ -39,7 +41,6 @@
     "@types/node": "^22.13.9",
     "@types/qrcode": "^1.5.5",
     "@types/supertest": "^6.0.2",
-    "prisma": "^6.4.1",
     "supertest": "^7.0.0",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
