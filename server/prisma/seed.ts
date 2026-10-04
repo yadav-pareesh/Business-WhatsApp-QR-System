@@ -5,21 +5,17 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('Seeding demo data...');
+  await prisma.$connect();
 
-  // 1. Clean existing records if any
-  await prisma.analyticsEvent.deleteMany();
-  await prisma.orderItem.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.productAddon.deleteMany();
-  await prisma.productVariantOption.deleteMany();
-  await prisma.productVariantGroup.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.businessHours.deleteMany();
-  await prisma.qRCode.deleteMany();
-  await prisma.subscription.deleteMany();
-  await prisma.business.deleteMany();
-  await prisma.user.deleteMany();
+  // Check if demo owner already exists
+  const existingOwner = await prisma.user.findUnique({
+    where: { email: 'owner@abcrestaurant.com' },
+  });
+
+  if (existingOwner) {
+    console.log('Demo owner already exists in database:', existingOwner.email);
+    return;
+  }
 
   // 2. Create demo owner
   const passwordHash = await bcrypt.hash('DemoPassword123!', 10);
