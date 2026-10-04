@@ -1,4 +1,5 @@
-const BASE_URL = '/api';
+const rawBase = (import.meta.env.VITE_API_URL as string | undefined) || '/api';
+const BASE_URL = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -27,7 +28,11 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
+    const url = endpoint.startsWith('http')
+      ? endpoint
+      : `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+
+    const response = await fetch(url, {
       ...options,
       headers,
     });
