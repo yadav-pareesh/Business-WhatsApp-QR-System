@@ -34,10 +34,8 @@ export async function generateUniqueBusinessSlug(name: string): Promise<string> 
 }
 
 export function generateOrderNumber(businessSlug: string): string {
-  const prefix = businessSlug
-    .replace(/[^a-zA-Z]/g, '')
-    .slice(0, 3)
-    .toUpperCase() || 'ORD';
+  const letters = businessSlug.replace(/[^a-zA-Z]/g, '').toUpperCase();
+  const prefix = (letters.slice(0, 3) || 'ORD').padEnd(3, 'X');
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   return `#${prefix}-${randomSuffix}`;
 }

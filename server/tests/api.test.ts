@@ -17,6 +17,12 @@ describe('End-to-End API Integration & Security Tests', () => {
     phone: '9876543210',
   };
 
+  beforeAll(async () => {
+    await prisma.$connect();
+    // Warm up the DB connection pool so Test 1 runs on a hot connection
+    await prisma.user.findFirst({ select: { id: true } }).catch(() => null);
+  }, 45000);
+
   it('1. Registers a new business merchant account', async () => {
     const res = await request(app)
       .post('/api/auth/register')

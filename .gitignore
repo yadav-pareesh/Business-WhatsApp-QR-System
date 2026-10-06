@@ -12,12 +12,16 @@ build/
 *.db-journal
 server/dev.db
 server/dev.db-journal
+server/prisma/dev.db
+server/prisma/dev.db-journal
 
 # Environment variables
 .env
 .env.local
 .env.*.local
+server/.env
 !.env.example
+!server/.env.example
 
 # Logs
 logs
@@ -31,3 +35,10 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Vercel
+.vercel/
+
+# Generated files
+server/scratch_test_db.mjs
+

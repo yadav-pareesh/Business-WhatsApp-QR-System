@@ -78,7 +78,14 @@ authRouter.post(
           businesses: [],
         },
       });
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.code === 'P2002' || error?.message?.includes('Unique constraint failed')) {
+        res.status(409).json({
+          success: false,
+          error: { code: 'EMAIL_ALREADY_EXISTS', message: 'An account with this email already exists.' },
+        });
+        return;
+      }
       next(error);
     }
   }

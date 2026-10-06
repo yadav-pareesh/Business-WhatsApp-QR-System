@@ -8,7 +8,7 @@ export interface AppError extends Error {
 
 export function errorHandler(
   err: AppError | ZodError | Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void {
@@ -20,7 +20,30 @@ export function errorHandler(
       error: {
         code: 'VALIDATION_ERROR',
         message,
-        details: err.errors,
+        details: process.env.NODE_ENV !== 'production' ? err.errors : undefined,
+      },
+    });
+    return;
+  }
+
+  // Handle Prisma Known Request Errors
+  const prismaCode = (err as any).code;
+  if (prismaCode === 'P2002') {
+    res.status(409).json({
+      success: false,
+      error: {
+        code: 'CONFLICT',
+        message: 'A record with this unique value already exists.',
+      },
+    });
+    return;
+  }
+  if (prismaCode === 'P2025') {
+    res.status(404).json({
+      success: false,
+      error: {
+        code: 'NOT_FOUND',
+        message: 'The requested record was not found.',
       },
     });
     return;
@@ -31,15 +54,18 @@ export function errorHandler(
   const code = (err as AppError).code || 'INTERNAL_SERVER_ERROR';
   const message = err.message || 'An unexpected error occurred';
 
-  if (process.env.NODE_ENV !== 'production' && statusCode === 500) {
-    console.error('Unhandled Server Error:', err);
+  // Always log server errors (Vercel captures these in Logs)
+  if (statusCode >= 500) {
+    console.error(`[ERROR] ${req.method} ${req.path}:`, err);
   }
 
   res.status(statusCode).json({
     success: false,
     error: {
       code,
-      message,
+      message: statusCode >= 500 && process.env.NODE_ENV === 'production'
+        ? 'An unexpected error occurred. Please try again later.'
+        : message,
     },
   });
 }

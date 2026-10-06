@@ -8,13 +8,19 @@ declare global {
 
 const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.PRISMA_DATABASE_URL;
 
-export const prisma =
-  globalThis.prismaGlobal ??
-  new PrismaClient({
+function createPrismaClient(): PrismaClient {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  return new PrismaClient({
     ...(dbUrl ? { datasourceUrl: dbUrl } : {}),
-    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+    log: isProduction ? ['error'] : ['warn', 'error'],
   });
+}
+
+// Reuse PrismaClient across hot reloads in development and across warm serverless invocations
+export const prisma: PrismaClient = globalThis.prismaGlobal ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
   globalThis.prismaGlobal = prisma;
 }
+

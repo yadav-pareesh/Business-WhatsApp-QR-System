@@ -17,6 +17,9 @@ import { publicRouter } from './routes/public.routes';
 
 const app = express();
 
+// Trust proxy (required for Vercel / cloud reverse proxies & rate limiting)
+app.set('trust proxy', 1);
+
 // Security and utility middleware
 app.use(
   helmet({
@@ -24,10 +27,20 @@ app.use(
     crossOriginEmbedderPolicy: false,
   })
 );
+
+// CORS — properly configured for production
+const corsOrigins = config.corsOrigin === '*'
+  ? '*'
+  : config.corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+
 app.use(
   cors({
-    origin: '*',
+    origin: corsOrigins === '*'
+      ? true  // Reflect the request origin (permits all, but allows credentials)
+      : corsOrigins,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Business-Id'],
   })
 );
 app.use(compression());
@@ -35,7 +48,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 if (config.nodeEnv !== 'test') {
-  app.use(morgan('dev'));
+  app.use(morgan(config.isProduction ? 'combined' : 'dev'));
 }
 
 // Health check endpoint
@@ -72,10 +85,12 @@ app.use('/api/*', (_req, res) => {
 // Centralized Error Handler
 app.use(errorHandler);
 
-if (process.env.NODE_ENV !== 'test') {
+// Only start the HTTP server when not in test mode and not on Vercel serverless
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   app.listen(config.port, () => {
     console.log(`🚀 Business WhatsApp QR API running on http://localhost:${config.port}`);
   });
 }
 
 export default app;
+

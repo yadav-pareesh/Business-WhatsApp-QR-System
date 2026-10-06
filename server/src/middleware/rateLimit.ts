@@ -5,6 +5,7 @@ export const authLimiter = rateLimit({
   max: 30, // 30 requests per window
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     success: false,
     error: {
@@ -19,6 +20,7 @@ export const orderLimiter = rateLimit({
   max: 20, // 20 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     success: false,
     error: {
@@ -33,4 +35,5 @@ export const publicApiLimiter = rateLimit({
   max: 120, // 120 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
 });
