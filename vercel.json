@@ -2,7 +2,7 @@
   "framework": "vite",
   "buildCommand": "cd client && npm run build",
   "outputDirectory": "client/dist",
-  "installCommand": "npm install",
+  "installCommand": "npm install --workspace=client",
   "rewrites": [
     {
       "source": "/(.*)",
